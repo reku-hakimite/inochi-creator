@@ -10,7 +10,7 @@ on:
       tags:
         description: 'tags'
         required: false
-        type: choice
+        type: string
         
 permissions:
   contents: write
