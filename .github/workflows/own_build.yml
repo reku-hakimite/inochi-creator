@@ -7,11 +7,7 @@ name: Own Build
 on:
   workflow_dispatch:
     # Sequence of patterns matched against refs/tags
-    inputs:
-      tags:
-        description: 'Test scenario tags'
-        required: false
-        type: string
+      tags: '*'
     
 permissions:
   contents: write
