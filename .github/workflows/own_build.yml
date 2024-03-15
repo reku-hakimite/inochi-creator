@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
     inputs:
       tags:
-        description: 'tags'
-        required: false
+        description: 'Test scenario tags'
+        required: true
         type: string
         
 permissions:
