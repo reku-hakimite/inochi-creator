@@ -1,0 +1,124 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+name: Own Build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-resources:
+    runs-on: ubuntu-20.04
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: 'Install dependencies'
+      run: |
+        sudo apt-get update
+        sudo apt-get install gettext
+        mkdir out/
+
+    - name: 'Generate i18n'
+      run: |
+        # Build translations
+        mkdir otl/
+        
+        sudo chmod +x ./gentl.sh
+        ./gentl.sh
+
+        cp out/* otl/
+
+    - name: Make Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: translations
+        path: otl/*
+        retention-days: 1
+
+
+  windows-build:
+    runs-on: windows-latest
+    needs: build-resources
+
+    steps:
+    - uses: actions/checkout@v3
+    - uses: dlang-community/setup-dlang@4c99aa991ce7d19dd3064de0a4f2f6b2f152e2d7
+      with:
+        compiler: ldc-latest
+        
+    - name: Download translations
+      uses: actions/download-artifact@v3
+      with:
+        name: translations
+        path: out/i18n/
+      
+    - name: "Clone dependencies & set versions"
+      run: |
+        git clone https://github.com/Inochi2D/i2d-imgui.git --recurse-submodules
+        git clone https://github.com/Inochi2D/inochi2d.git
+        git clone https://github.com/Inochi2D/dcv-i2d
+        dub add-local i2d-imgui/ "0.8.0"
+        dub add-local inochi2d/ "0.8.0"
+        dub add-local dcv-i2d/ "0.3.0"
+
+    - name: 'Build Inochi Creator'
+      run: |
+        function Invoke-VSDevEnvironment {
+        $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+            $installationPath = & $vswhere -prerelease -legacy -latest -property installationPath
+            $Command = Join-Path $installationPath "Common7\Tools\vsdevcmd.bat"
+          & "${env:COMSPEC}" /s /c "`"$Command`" -no_logo && set" | Foreach-Object {
+                if ($_ -match '^([^=]+)=(.*)') {
+                    [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2])
+                }
+            }
+        }
+        Invoke-VSDevEnvironment
+        
+        # Build metadata (like version information and icons)
+        dub build --config=meta
+
+        # Build the project, with its main file included, without unittests
+        dub build --compiler=ldc2 --build=release --config=win32-full
+
+    - name: Archive Zip
+      uses: thedoctor0/zip-release@main
+      with:
+        type: 'zip'
+        filename: 'inochi-creator-win32-x86_64.zip'
+        directory: 'out/'
+        path: '*'
+    
+    - name: 'Add msbuild to PATH'
+      uses: microsoft/setup-msbuild@v1.1
+    
+    - name: 'Build MSI'
+      run: |
+        cd build-aux/windows/wix
+
+        # Install required dependency
+        mkdir packages/
+        nuget install WixToolset.UI.wixext -version 4.0.0 -OutputDirectory packages/
+
+        # Build solution
+        msbuild "Inochi Creator.sln" -property:Configuration=Release
+
+        # Copy installer out
+        mv "bin/Release/Inochi Creator.msi" "../../../out/inochi-creator-win32-x86_64.msi"
+        cd ../../../
+
+    - name: Make Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: release-win32
+        path: |
+          out/inochi-creator-win32-x86_64.msi
+          out/inochi-creator-win32-x86_64.zip
+          version.txt
+        retention-days: 1
+
