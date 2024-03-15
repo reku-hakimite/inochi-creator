@@ -7,7 +7,9 @@ name: Own Build
 on:
   workflow_dispatch:
     # Sequence of patterns matched against refs/tags
-      tags: '*'
+      tags: 
+        - '*'
+        - '!*-rc*'
     
 permissions:
   contents: write
