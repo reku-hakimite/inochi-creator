@@ -6,12 +6,13 @@ name: Own Build
 
 on:
   workflow_dispatch:
+    # Sequence of patterns matched against refs/tags
     inputs:
       tags:
         description: 'Test scenario tags'
-        required: true
+        required: false
         type: string
-        
+    
 permissions:
   contents: write
 
@@ -20,6 +21,8 @@ jobs:
     runs-on: ubuntu-20.04
     
     steps:
+    - env:
+        TAGS: ${{ inputs.tags }}
     - uses: actions/checkout@v3
     
     - name: 'Install dependencies'
