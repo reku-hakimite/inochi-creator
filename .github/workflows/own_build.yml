@@ -6,7 +6,12 @@ name: Own Build
 
 on:
   workflow_dispatch:
-
+    inputs:
+      tags:
+        description: 'tags'
+        required: false
+        type: boolean
+        
 permissions:
   contents: write
 
