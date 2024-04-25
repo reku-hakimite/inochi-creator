@@ -1,16 +1,17 @@
-# This workflow uses actions that are not certified by GitHub.
+ # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by
 # separate terms of service, privacy policy, and support
 # documentation.
-name: Own Build
+name: Build & Release
 
 on:
-  workflow_dispatch:
-    # Sequence of patterns matched against refs/tags
-      tags: 
-        - '*'
-        - '!*-rc*'
-    
+  push:
+    # Push all normally versioned tags
+    # Ignore release candidates!
+    tags:
+      - '*'
+      - '!*-rc*'
+
 permissions:
   contents: write
 
@@ -19,9 +20,6 @@ jobs:
     runs-on: ubuntu-20.04
     
     steps:
-    - run: |
-      env:
-        TAGS: ${{ inputs.tags }}
     - uses: actions/checkout@v3
     
     - name: 'Install dependencies'
@@ -46,8 +44,6 @@ jobs:
         name: translations
         path: otl/*
         retention-days: 1
-
-
   windows-build:
     runs-on: windows-latest
     needs: build-resources
@@ -101,31 +97,11 @@ jobs:
         directory: 'out/'
         path: '*'
     
-    - name: 'Add msbuild to PATH'
-      uses: microsoft/setup-msbuild@v1.1
-    
-    - name: 'Build MSI'
-      run: |
-        cd build-aux/windows/wix
-
-        # Install required dependency
-        mkdir packages/
-        nuget install WixToolset.UI.wixext -version 4.0.0 -OutputDirectory packages/
-
-        # Build solution
-        msbuild "Inochi Creator.sln" -property:Configuration=Release
-
-        # Copy installer out
-        mv "bin/Release/Inochi Creator.msi" "../../../out/inochi-creator-win32-x86_64.msi"
-        cd ../../../
-
     - name: Make Artifact
       uses: actions/upload-artifact@v3
       with:
         name: release-win32
         path: |
-          out/inochi-creator-win32-x86_64.msi
           out/inochi-creator-win32-x86_64.zip
           version.txt
         retention-days: 1
-
