@@ -2,16 +2,12 @@
 # They are provided by a third-party and are governed by
 # separate terms of service, privacy policy, and support
 # documentation.
-name: Build & Release
+name: Own Build
 
 on:
-  push:
+  workflow_dispatch:
     # Push all normally versioned tags
     # Ignore release candidates!
-    tags:
-      - '*'
-      - '!*-rc*'
-
 permissions:
   contents: write
 
